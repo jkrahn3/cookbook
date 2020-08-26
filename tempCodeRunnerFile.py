@@ -1,1 +1,0 @@
-text = value.__doc__ if value.__doc__ is not None else value
