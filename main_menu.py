@@ -3,6 +3,7 @@ from collections import OrderedDict
 from peewee import *
 from modify_recipes import *
 from recipes import Recipe
+from menu import DocStringMenu
 
 
 def initialize():
@@ -11,16 +12,20 @@ def initialize():
 
 
 def menu_loop():
-    """Show the menu"""
-    choice = None
-    while choice != 'q':
-        for key, value in menu.items():
-            print(f'{key}) {value.__doc__}')
-        print('q) Quit')
-        choice = input('\nAction: ').lower().strip()
-
-        if choice in menu:
-            menu[choice]()
+    main_menu_options = (
+        view_recipes,
+        search_recipes,
+        get_ingredients,
+        print_recipe,
+        show_whole_recipe,
+        add_recipe,
+        modify_recipe2,
+        delete_recipe,
+    )
+    main_menu = DocStringMenu(main_menu_options)
+    loop_menu = True
+    while loop_menu:
+        loop_menu = main_menu.show()
 
 
 def add_recipe():
@@ -81,15 +86,3 @@ def show_whole_recipe():
 def search_recipes():
     """Search for recipes by ingredient"""
     view_recipes(input('Search ingredients:  '))
-
-
-menu = OrderedDict([
-    ('1', view_recipes),
-    ('2', search_recipes),
-    ('3', get_ingredients),
-    ('4', print_recipe),
-    ('5', show_whole_recipe),
-    ('6', add_recipe),
-    ('7', modify_recipe),
-    ('8', delete_recipe),
-])

@@ -2,7 +2,7 @@ from collections import OrderedDict
 import json
 from peewee import DoesNotExist
 from recipes import Recipe
-
+from menu import DocStringMenu
 
 IDX_HEADER_WIDTH = 7
 INGR_HEADER_WIDTH = 40
@@ -59,21 +59,6 @@ def set_ingredient_details():
     return ingredient_dict
 
 
-def modify_recipe():
-    """Modify recipe"""
-    choice = None
-    recipe = select_recipe()
-    while choice != 'q':
-        print(f'\n{recipe.name} selected. Choose next action\n')
-        for key, value in modify_recipe_menu.items():
-            print(f'{key}) {value.__doc__}')
-        print('q) quit to main menu')
-        choice = input('\nAction:  ')
-        if choice in modify_recipe_menu:
-            modify_recipe_menu[choice](recipe)
-            recipe = refresh_recipe(recipe)
-
-
 def refresh_recipe(recipe_id):
     return Recipe.get_by_id(recipe_id)
 
@@ -106,20 +91,6 @@ def update_field(recipe, field, updated_field=None):
 def update_name(recipe):
     """Update name"""
     update_field(recipe, field='name')
-
-
-def update_ingredients(recipe):
-    """Add, delete, or modify ingredients"""
-    choice = None
-    print_recipe(recipe)
-    while choice != 'q':
-        print(f'\n\n{recipe.name} selected. Choose next action\n')
-        for key, value in modify_ingredients_menu.items():
-            print(f'{key}) {value.__doc__}')
-        print('q) quit to main menu')
-        choice = input('\nAction:  ')
-        if choice in modify_ingredients_menu:
-            modify_ingredients_menu[choice](recipe)
 
 
 def get_ingredients(recipe=None):
@@ -202,23 +173,6 @@ def modify_ingredient(recipe):
         mod_one_ingr_menu_loop(recipe, ingr_json, idx_to_mod)
 
 
-def mod_one_ingr_menu_loop(recipe, ingr_json, idx):
-    """Menu to decide what part of an ingredient to modify"""
-    choice = None
-    print(ING_HEADER_STR[:-1])
-    print(show_ingr(ingr_json[idx], idx + 1))
-    ingr_name = ingr_json[idx].get("ingredient_name")
-    while choice != 'q':
-        print(
-            f'\n\n{ingr_name} selected. Choose next action\n')
-        for key, value in mod_one_ingr_menu.items():
-            print(f'{key}) {value.__doc__}')
-        print('q) quit to main menu')
-        choice = input('\nAction:  ')
-        if choice in mod_one_ingr_menu:
-            mod_one_ingr_menu[choice](recipe, ingr_json, idx)
-
-
 def mod_ingr_name(recipe, ingr_json, idx):
     """Change name."""
     new_name = input(
@@ -236,7 +190,6 @@ def mod_ingr_amount(recipe, ingr_json, idx):
     ingr_json[idx].update({'ingredient_amount': new_amount})
     ingr_json[idx].update({'ingredient_units': new_unit})
     update_field(recipe, 'ingredient list', ingr_json)
-    pass
 
 
 def mod_ingr_prep(recipe, ingr_json, idx):
@@ -245,7 +198,6 @@ def mod_ingr_prep(recipe, ingr_json, idx):
         f'Enter new prep for {ingr_json[idx].get("ingredient_name")}:  ')
     ingr_json[idx].update({'prep': new_prep})
     update_field(recipe, 'ingredient list', ingr_json)
-    pass
 
 
 def mod_ingr_opt(recipe, ingr_json, idx):
@@ -255,24 +207,7 @@ def mod_ingr_opt(recipe, ingr_json, idx):
         new_opt = True
     ingr_json[idx].update({'optional': new_opt})
     update_field(recipe, 'ingredient list', ingr_json)
-    pass
 
-
-mod_one_ingr_menu = OrderedDict([
-    ('1', mod_ingr_name),
-    ('2', mod_ingr_amount),
-    ('3', mod_ingr_prep),
-    ('4', mod_ingr_opt),
-
-
-])
-
-
-modify_ingredients_menu = OrderedDict([
-    ('1', add_ingredient),
-    ('2', delete_ingredient),
-    ('3', modify_ingredient),
-])
 
 
 def update_prep_time(recipe):
@@ -290,10 +225,59 @@ def update_instructions(recipe):
     update_field(recipe, field='instructions')
 
 
-modify_recipe_menu = OrderedDict([
-    ('1', update_name),
-    ('2', update_ingredients),
-    ('3', update_prep_time),
-    ('4', update_cook_time),
-    ('5', update_instructions),
-])
+def modify_recipe2():
+    """Modify recipe"""
+    modify_recipe_options = (
+        update_name,
+        modify_ingredients,
+        update_prep_time,
+        update_cook_time,
+        update_instructions,
+    )
+    recipe = select_recipe()
+    mod_recipe_menu = DocStringMenu(
+        modify_recipe_options)
+    loop_menu = True
+    while loop_menu:
+        print(f'{recipe.name} selected. Choose next action.')
+        loop_menu = mod_recipe_menu.show(recipe)
+        recipe = refresh_recipe(recipe.id)
+
+
+def modify_ingredients(recipe):
+    """Add, delete, or modify ingredients"""
+    modify_ingredients_options = (
+        add_ingredient,
+        delete_ingredient,
+        modify_ingredient,
+    )
+
+    mod_ingr_menu = DocStringMenu(
+        modify_ingredients_options)
+    loop_menu = True
+    while loop_menu:
+        print_recipe(recipe)
+        print(f'{recipe.name} selected. Choose next action.')
+        loop_menu = mod_ingr_menu.show(recipe)
+        recipe = refresh_recipe(recipe.id)
+
+
+def mod_one_ingr_menu_loop(recipe, ingr_json, idx):
+    """Menu to decide what part of an ingredient to modify"""
+    mod_one_ingr_options = (
+        mod_ingr_name,
+        mod_ingr_amount,
+        mod_ingr_prep,
+        mod_ingr_opt,
+    )
+
+    mod_one_ingr_menu = DocStringMenu(
+        mod_one_ingr_options)
+    loop_menu = True
+    while loop_menu:
+        print(ING_HEADER_STR[:-1])
+        print(show_ingr(ingr_json[idx], idx + 1))
+        ingr_name = ingr_json[idx].get("ingredient_name")
+        print(f'{ingr_name} selected. Choose next action\n')
+        loop_menu = mod_one_ingr_menu.show(recipe, ingr_json, idx)
+        recipe = refresh_recipe(recipe.id)
