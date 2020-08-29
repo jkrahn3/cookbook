@@ -1,22 +1,5 @@
 from recipes import *
-from ingredients import *
-from main_menu import *
-from modify_recipes import *
-
-
-# mod_one_ingr_menu = (
-#     mod_ingr_name),
-#     mod_ingr_amount),
-#     mod_ingr_prep),
-#     mod_ingr_opt),
-# )
-
-
-# modify_ingredients_menu=(
-#      add_ingredient),
-#      delete_ingredient),
-#      modify_ingredient),
-# )
+from modify_recipes import menu_loop
 
 
 if __name__ == '__main__':

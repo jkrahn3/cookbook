@@ -1,8 +1,9 @@
 from collections import OrderedDict
 import json
 from peewee import DoesNotExist
+
 from recipes import Recipe
-from menu import DocStringMenu
+from menu import DocStringMenu, RecipeMenu
 
 IDX_HEADER_WIDTH = 7
 INGR_HEADER_WIDTH = 40
@@ -21,17 +22,118 @@ opt_header_str = 'Optional'.center(OPT_HEADER_WIDTH)
 ING_HEADER_STR = f'|{idx_header_str}|{ingr_header_str}|{amt_header_str}|{unit_header_str}|{prep_header_str}|{opt_header_str}|\n'
 
 
+def initialize():
+    db.connect()
+    db.create_tables([Recipe], safe=True)
+
+
+def menu_loop():
+    main_menu_options = (
+        view_recipes,
+        search_recipes,
+        print_ingredients,
+        show_whole_recipe,
+        add_recipe,
+        modify_recipe,
+        delete_recipe,
+    )
+
+    main_menu = DocStringMenu(main_menu_options)
+    main_menu.loop_menu()
+
+
+def modify_recipe(*args, **kwargs):
+    """Modify recipe"""
+    modify_recipe_options = (
+        update_name,
+        modify_ingredients,
+        update_prep_time,
+        update_cook_time,
+        update_instructions,
+    )
+    recipe = select_recipe()
+    mod_recipe_menu = RecipeMenu(
+        modify_recipe_options)
+
+    loop_dict = {
+        'kwargs_to_refresh': {'recipe': recipe},
+        'run_before': show_whole_recipe,
+        'run_after': refresh_recipe,
+
+    }
+    mod_recipe_menu.loop_menu(**loop_dict)
+
+
+def modify_ingredients(*args, **kwargs):
+    """Add, delete, or modify ingredients"""
+    recipe = kwargs.get('recipe')
+    modify_ingredients_options = (
+        add_ingredient,
+        delete_ingredient,
+        modify_ingredient,
+    )
+
+    mod_ingr_menu = RecipeMenu(
+        modify_ingredients_options)
+    loop_dict = {
+        'kwargs_to_refresh': {'recipe': recipe},
+        'run_before': print_ingredients,
+        'run_after': refresh_recipe,
+    }
+    mod_ingr_menu.loop_menu(**loop_dict)
+
+
+def mod_one_ingr_menu_loop(recipe, ingr_json, idx):
+    """Menu to decide what part of an ingredient to modify"""
+    mod_one_ingr_options = (
+        mod_ingr_name,
+        mod_ingr_amount,
+        mod_ingr_prep,
+        mod_ingr_opt,
+    )
+
+    mod_one_ingr_menu = RecipeMenu(
+        mod_one_ingr_options)
+
+    ingr_name = ingr_json[idx].get('ingredient_name')
+    run_before = show_ingr(ingr_json[idx], idx + 1)
+    run_after = refresh_recipe
+
+    loop_dict = {
+        'kwargs_to_refresh': {'recipe': recipe,
+                              'ingr_json': ingr_json,
+                              'idx': idx},
+        'run_before': print_ingredients,
+        'run_after': refresh_ingr,
+    }
+    mod_one_ingr_menu.loop_menu(**loop_dict)
+
+
 def select_recipe():
     recipe = None
-    recipe_name = input('\n\nWhich recipe? Enter recipe id or recipe name:  ')
-    try:
-        recipe = Recipe.get(Recipe.id == recipe_name)
-    except DoesNotExist:
+    while recipe == None:
+        recipe_name = input(
+            '\n\nWhich recipe? Enter recipe id or recipe name:  ')
         try:
-            recipe = Recipe.get(Recipe.name == recipe_name)
-        except (DoesNotExist, NameError):
-            print('\n\nThis recipe does not exist. Try again.\n\n')
+            recipe = Recipe.get(Recipe.id == recipe_name)
+        except DoesNotExist:
+            try:
+                recipe = Recipe.get(Recipe.name == recipe_name)
+            except (DoesNotExist, NameError):
+                view_recipes()
+                print('\nThis recipe does not exist. Try again.')
     return recipe
+
+
+def view_recipes(search_query=None):
+    """Show recipe names"""
+    recipes = Recipe.select()
+    if search_query:
+        recipes = recipes.where(Recipe.ingredient_list.contains(search_query))
+    print('\n\n id - name')
+    for recipe in recipes:
+        print(f'{str(recipe.id).rjust(3)} - {recipe.name}')
+    print('\r\r')
 
 
 def set_ingredient_details():
@@ -59,8 +161,15 @@ def set_ingredient_details():
     return ingredient_dict
 
 
-def refresh_recipe(recipe_id):
-    return Recipe.get_by_id(recipe_id)
+def refresh_recipe(*args, **kwargs):
+    recipe = kwargs.get('recipe')
+    return {'recipe': Recipe.get_by_id(recipe.id)}
+
+
+def refresh_ingr(*args, **kwargs):
+    recipe = refresh_recipe(**kwargs).get('recipe')
+    kwargs['recipe'] = recipe
+    return kwargs
 
 
 def update_field(recipe, field, updated_field=None):
@@ -88,25 +197,15 @@ def update_field(recipe, field, updated_field=None):
         print(f'{recipe.name} not updated')
 
 
-def update_name(recipe):
+def update_name(*args, **kwargs):
     """Update name"""
+    recipe = kwargs.get('recipe')
     update_field(recipe, field='name')
 
 
-def get_ingredients(recipe=None):
-    """Show ingredients"""
-    if recipe is None:
-        recipe = select_recipe()
-    ingr_json = json.loads(recipe.ingredient_list)
-    print('\r\r')
-    for idx, item in enumerate(ingr_json, 1):
-        print(f'{str(idx).rjust(2)} - {item.get("ingredient_name")}')
-    print('\r\r')
-    return ingr_json
-
-
-def print_recipe(recipe=None, print_ingr=True):
+def print_ingredients(print_ingr=True, *args, **kwargs):
     """Show ingredients with details"""
+    recipe = kwargs.get('recipe')
     if recipe is None:
         recipe = select_recipe()
     ingr_json = json.loads(recipe.ingredient_list)
@@ -120,7 +219,7 @@ def print_recipe(recipe=None, print_ingr=True):
     return ingr_str, ingr_json
 
 
-def show_ingr(ingr_to_print, idx):
+def show_ingr(ingr_to_print, idx, *args, **kwargs):
     """Prints one ingredient with detals. Takes one ingredient dict"""
     idx_str = str(idx).rjust(IDX_HEADER_WIDTH-1)
     name_str = str(ingr_to_print.get('ingredient_name')
@@ -136,19 +235,21 @@ def show_ingr(ingr_to_print, idx):
     return ingr_str
 
 
-def add_ingredient(recipe):
+def add_ingredient(*args, **kwargs):
     """Add ingredient"""
-    _, ingr_json = print_recipe(recipe, print_ingr=False)
+    recipe = kwargs.get('recipe')
+    _, ingr_json = print_ingredients(print_ingr=False, *args, **kwargs)
     new_ingr = set_ingredient_details()
-    ingr_json.append(new_ingr)
-    Recipe.update(ingredient_list=json.dumps(ingr_json)).where(
-        Recipe.name == recipe.name).execute()
-    pass
+    if input(f'Add {new_ingr.get("ingredient_name")}? [Y/n]:  ') != 'n':
+        ingr_json.append(new_ingr)
+        Recipe.update(ingredient_list=json.dumps(ingr_json)).where(
+            Recipe.name == recipe.name).execute()
 
 
-def delete_ingredient(recipe):
+def delete_ingredient(*args, **kwargs):
     """Delete ingredient"""
-    _, ingr_json = print_recipe(recipe, print_ingr=False)
+    recipe = kwargs.get('recipe')
+    _, ingr_json = print_ingredients(print_ingr=False, *args, **kwargs)
     ingr_to_del = input('What is the index of the ingredient to delete?:  ')
     try:
         idx_to_del = int(ingr_to_del) - 1
@@ -161,9 +262,11 @@ def delete_ingredient(recipe):
                 Recipe.name == recipe.name).execute()
 
 
-def modify_ingredient(recipe):
+def modify_ingredient(*args, **kwargs):
     """Modify ingredient"""
-    _, ingr_json = print_recipe(recipe, print_ingr=False)
+    recipe = kwargs.get('recipe')
+    _, ingr_json = _, ingr_json = print_ingredients(
+        print_ingr=False, *args, **kwargs)
     ingr_to_del = input('What is the index of the ingredient to modify?:  ')
     try:
         idx_to_mod = int(ingr_to_del) - 1
@@ -209,75 +312,69 @@ def mod_ingr_opt(recipe, ingr_json, idx):
     update_field(recipe, 'ingredient list', ingr_json)
 
 
-
-def update_prep_time(recipe):
+def update_prep_time(*args, **kwargs):
     """Update prep time"""
+    recipe = kwargs.get('recipe')
     update_field(recipe, field='prep time')
 
 
-def update_cook_time(recipe):
+def update_cook_time(*args, **kwargs):
     """Update cook time"""
+    recipe = kwargs.get('recipe')
     update_field(recipe, field='cook time')
 
 
-def update_instructions(recipe):
+def update_instructions(*args, **kwargs):
     """Update instructions"""
+    recipe = kwargs.get('recipe')
     update_field(recipe, field='instructions')
 
 
-def modify_recipe2():
-    """Modify recipe"""
-    modify_recipe_options = (
-        update_name,
-        modify_ingredients,
-        update_prep_time,
-        update_cook_time,
-        update_instructions,
-    )
+def show_whole_recipe(*args, **kwargs):
+    """Show whole recipe"""
+    recipe = kwargs.get('recipe')
+    if recipe == None:
+        recipe = select_recipe()
+    print(f'\nRecipe: {recipe.name}')
+    print(f'Prep Time: {recipe.prep_time}')
+    print(f'Cook Time: {recipe.cook_time}\n')
+    print(f'Ingredients:')
+    print_ingredients(recipe=recipe)
+    print(f'Instructions: {recipe.instructions}\n')
+
+
+def add_recipe():
+    """Add new recipe"""
+    ingredient_list = []
+    name = input('Enter the recipe name: ').strip()
+
+    run = True
+    while run:
+        if input('Add an ingredient? [y/N]:  ').lower() == 'y':
+            ingredient_list.append(set_ingredient_details())
+        else:
+            run = False
+
+    if input(f'Save {name} recipe? [Y/n]:  ').lower() != 'n':
+        Recipe.create(name=name, ingredient_list=json.dumps(ingredient_list))
+
+
+def delete_recipe():
+    """Delete recipe"""
     recipe = select_recipe()
-    mod_recipe_menu = DocStringMenu(
-        modify_recipe_options)
-    loop_menu = True
-    while loop_menu:
-        print(f'{recipe.name} selected. Choose next action.')
-        loop_menu = mod_recipe_menu.show(recipe)
-        recipe = refresh_recipe(recipe.id)
+    if recipe is not None:
+        if input(f'Delete {recipe.name}? [y/N]:  ').lower() == 'y':
+            recipe.delete_instance()
+            print("recipe deleted")
 
 
-def modify_ingredients(recipe):
-    """Add, delete, or modify ingredients"""
-    modify_ingredients_options = (
-        add_ingredient,
-        delete_ingredient,
-        modify_ingredient,
-    )
-
-    mod_ingr_menu = DocStringMenu(
-        modify_ingredients_options)
-    loop_menu = True
-    while loop_menu:
-        print_recipe(recipe)
-        print(f'{recipe.name} selected. Choose next action.')
-        loop_menu = mod_ingr_menu.show(recipe)
-        recipe = refresh_recipe(recipe.id)
+def add_test_recipes():
+    Recipe.create(name='garlic bread', ingredient_list=json.dumps(
+        test_recipes.garlic_bread_ingredients))
+    Recipe.create(name='black bean enchiladas', ingredient_list=json.dumps(
+        test_recipes.black_bean_enchiladas_ingredients))
 
 
-def mod_one_ingr_menu_loop(recipe, ingr_json, idx):
-    """Menu to decide what part of an ingredient to modify"""
-    mod_one_ingr_options = (
-        mod_ingr_name,
-        mod_ingr_amount,
-        mod_ingr_prep,
-        mod_ingr_opt,
-    )
-
-    mod_one_ingr_menu = DocStringMenu(
-        mod_one_ingr_options)
-    loop_menu = True
-    while loop_menu:
-        print(ING_HEADER_STR[:-1])
-        print(show_ingr(ingr_json[idx], idx + 1))
-        ingr_name = ingr_json[idx].get("ingredient_name")
-        print(f'{ingr_name} selected. Choose next action\n')
-        loop_menu = mod_one_ingr_menu.show(recipe, ingr_json, idx)
-        recipe = refresh_recipe(recipe.id)
+def search_recipes():
+    """Search for recipes by ingredient"""
+    view_recipes(input('Search ingredients:  '))

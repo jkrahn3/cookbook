@@ -19,6 +19,11 @@ class DocStringMenu():
             self.menu_dict[choice](*args, **kwargs)
         return True
 
+    def loop_menu(self, *args, **kwargs):
+        loop_menu = True
+        while loop_menu:
+            loop_menu = self.show(*args, **kwargs)
+
     def __str__(self):
         out = ''
         for key, value in self.menu_dict.items():
@@ -26,3 +31,20 @@ class DocStringMenu():
                 value, types.FunctionType) else value
             out += f'\n{key.rjust(3)}) {text}'
         return out
+
+
+class RecipeMenu(DocStringMenu):
+    def __init__(self, options: tuple, *args, **kwargs):
+        super().__init__(options, *args, **kwargs)
+
+    def loop_menu(self, *args, **kwargs):
+        kwargs_to_refresh = kwargs.get('kwargs_to_refresh')
+        run_before = kwargs.get('run_before')
+        run_after = kwargs.get('run_after')
+        loop_menu = True
+
+        while loop_menu:
+            run_before(**kwargs_to_refresh) if run_before else None
+            loop_menu = self.show(*args, **kwargs_to_refresh)
+            kwargs_to_refresh = run_after(
+                **kwargs_to_refresh) if run_after else kwargs_to_refresh
