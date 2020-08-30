@@ -1,6 +1,6 @@
 # cookbook
 ## Table of contents
-* [General info](#general_info)
+* [Introduction](#Introduction)
 * [Setup](#setup)
 
 
@@ -38,7 +38,7 @@ Ingredients:
 
 Instructions: Preheat broiler. Butter bread. Sprinkle on garlic salt. Place bread on cookie sheet on top rack for 
     3 minutes or until bread starts to become crispy. tasty!
-'''
+```
 
 Future work:
 
