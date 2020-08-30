@@ -42,12 +42,9 @@ Instructions: Preheat broiler. Butter bread. Sprinkle on garlic salt. Place brea
 
 Future work:
 
-Search by multiple ingredients so user can input what ingredients they have
-    on hand and get a list of recipes they can make.
-Add recipe by pasting in link to online recipe url, which the program then 
-    parses to auto-create the recipe.
-Create Django project with the same functionality, but available in web 
-    browser with functional UI.
+* Search by multiple ingredients so user can input what ingredients they have on hand and get a list of recipes they can make.
+* Add recipe by pasting in link to online recipe url, which the program then parses to auto-create the recipe.
+* Create Django project with the same functionality, but available in web browser with functional UI.
 
 ## Setup:
 Written with python 3.8.2
