@@ -36,14 +36,18 @@ Ingredients:
 |     2 |                 bread                  |    6     |  slices  |                              |    n     |
 |     3 |                 butter                 |    1     |   Tbsp   |                              |    n     |
 
-Instructions: Preheat broiler. Butter bread. Sprinkle on garlic salt. Place bread on cookie sheet on top rack for 3 minutes or until bread starts to become crispy. tasty!
+Instructions: Preheat broiler. Butter bread. Sprinkle on garlic salt. Place bread on cookie sheet on top rack for 
+    3 minutes or until bread starts to become crispy. tasty!
 '''
 
 Future work:
 
-Search by multiple ingredients so user can input what ingredients they have on hand and get a list of recipes they can make.
-Add recipe by pasting in link to online recipe url, which the program then parses to auto-create the recipe.
-Create Django project with the same functionality, but available in web browser with functional UI.
+Search by multiple ingredients so user can input what ingredients they have
+    on hand and get a list of recipes they can make.
+Add recipe by pasting in link to online recipe url, which the program then 
+    parses to auto-create the recipe.
+Create Django project with the same functionality, but available in web 
+    browser with functional UI.
 
 ## Setup:
 Written with python 3.8.2
