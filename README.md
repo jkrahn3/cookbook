@@ -5,7 +5,7 @@
 
 
 ## Introduction
-Manage a database for recipes with text-based user input.
+Manage a database using SQLite and peewee for recipes with text-based user input.
 
 Shows menus to get user input like this:
 
