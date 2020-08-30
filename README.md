@@ -47,12 +47,13 @@ Future work:
 * Create Django project with the same functionality, but available in web browser with functional UI.
 
 ## Setup:
-Written with python 3.8.2
-To run the project, clone it to a local library and navigate to that library in the Terminal
-On Windows:
+Written with python 3.8.2  
+To run the project, clone it to a local library and navigate to that library in the Terminal  
+On Windows:  
 
 ```
 python -m venv env
 env/Scripts/Activate
+pip install -r requirements.txt
 main.py
 ```
