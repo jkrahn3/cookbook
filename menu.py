@@ -27,8 +27,10 @@ class DocStringMenu():
     def __str__(self):
         out = ''
         for key, value in self.menu_dict.items():
-            text = value.__doc__ if isinstance(
-                value, types.FunctionType) else value
+            if isinstance(value, types.FunctionType) or isinstance(value, types.MethodType):
+                text = value.__doc__
+            else:
+                text = value
             out += f'\n{key.rjust(3)}) {text}'
         return out
 
