@@ -1,4 +1,3 @@
-
 from menu import DocStringMenu, RecipeMenu
 import datetime
 import json
@@ -44,6 +43,7 @@ class Recipe(Model):
 
     @classmethod
     def menu_loop(cls):
+        """Main program loop. Displays menu to create, read, update, or delete recipes"""
         main_menu_options = (
             cls.view_recipes,
             cls.search_recipes,
@@ -59,7 +59,9 @@ class Recipe(Model):
 
     @classmethod
     def modify_recipe(cls, *args, **kwargs):
-        """Modify recipe"""
+        """Modify recipe.
+        Menu to select options for modifying a single recipe.
+        """
         modify_recipe_options = (
             cls.update_name,
             cls.modify_ingredients,
@@ -81,7 +83,11 @@ class Recipe(Model):
 
     @classmethod
     def modify_ingredients(cls, *args, **kwargs):
-        """Add, delete, or modify ingredients"""
+        """Add, delete, or modify ingredients.
+        Menu for modifying the ingredients of a recipe
+
+        Required parameter: 'recipe' in kwargs
+        """
         recipe = kwargs.get('recipe')
         modify_ingredients_options = (
             cls.add_ingredient,
@@ -100,7 +106,7 @@ class Recipe(Model):
 
     @classmethod
     def mod_one_ingr_menu_loop(cls, recipe, ingr_json, idx):
-        """Menu to decide what part of an ingredient to modify"""
+        """Menu to decide what part of an ingredient to modify."""
         mod_one_ingr_options = (
             cls.mod_ingr_name,
             cls.mod_ingr_amount,
@@ -124,6 +130,7 @@ class Recipe(Model):
 
     @classmethod
     def select_recipe(cls):
+        """User dialog to select a recipe. Loops if invalid input is given."""
         recipe = None
         while recipe == None:
             recipe_name = input(
@@ -140,7 +147,14 @@ class Recipe(Model):
 
     @staticmethod
     def view_recipes(search_query=None):
-        """Show recipe names"""
+        """Show recipe names.
+        Prints recipe names with their respective ids
+
+        Parameter: search_query (not required)
+                    pass in string as input to only display
+                    recipes that contain that string in the
+                    ingredients list.
+        """
         recipes = Recipe.select()
         if search_query:
             recipes = recipes.where(
@@ -166,30 +180,41 @@ class Recipe(Model):
             optional = False
 
         ingredient_dict = {
-            "ingredient_name": ingredient_name,
-            "ingredient_amount": ingredient_amount,
-            "ingredient_units": ingredient_units,
-            "optional": optional,
-            "prep": prep,
+            'ingredient_name': ingredient_name,
+            'ingredient_amount': ingredient_amount,
+            'ingredient_units': ingredient_units,
+            'optional': optional,
+            'prep': prep,
         }
 
         return ingredient_dict
 
     @staticmethod
     def refresh_recipe(*args, **kwargs):
+        """Updates recipe for displaying new changes."""
         recipe = kwargs.get('recipe')
         return {'recipe': Recipe.get_by_id(recipe.id)}
 
     @classmethod
     def refresh_ingr(cls, *args, **kwargs):
+        """Updates recipe and preserves kwargs for displaying new changes to ingredients."""
         recipe = cls.refresh_recipe(**kwargs).get('recipe')
         kwargs['recipe'] = recipe
         return kwargs
 
     @staticmethod
     def update_field(recipe, field, updated_field=None):
-        """Update field for row of database. Input is recipe and
-        which field to update such as recipe.name or recipe.prep_time.
+        """Modifies one field of a recipe in the database. 
+
+        Parameters:
+            recipe - recipe to modify
+            field - string representing what field to modify. Choose from:
+                'name'
+                'ingredient list'
+                'prep time'
+                'cook time'
+                'instructions'
+            updated field - new value to update to. Only needed for modifying ingredients.
         """
         if field != 'ingredient list':
             updated_field = input(
@@ -213,13 +238,14 @@ class Recipe(Model):
 
     @classmethod
     def update_name(cls, *args, **kwargs):
-        """Update name"""
+        """Update recipe name."""
         recipe = kwargs.get('recipe')
         cls.update_field(recipe, field='name')
 
     @classmethod
     def print_ingredients(cls, print_ingr=True, *args, **kwargs):
-        """Show ingredients with details"""
+        """Show ingredients.
+        Prints formatted table of all ingredients with ingredient details."""
         recipe = kwargs.get('recipe')
         if recipe is None:
             recipe = cls.select_recipe()
@@ -235,7 +261,9 @@ class Recipe(Model):
 
     @classmethod
     def show_ingr(cls, ingr_to_print, idx, *args, **kwargs):
-        """Prints one ingredient with detals. Takes one ingredient dict"""
+        """Returns formatted table of one ingredient with detals.
+        Takes dict for single ingredient.
+        """
         idx_str = str(idx).rjust(cls.IDX_HEADER_WIDTH-1)
         name_str = str(ingr_to_print.get('ingredient_name')
                        ).center(cls.INGR_HEADER_WIDTH)
@@ -251,7 +279,12 @@ class Recipe(Model):
 
     @classmethod
     def add_ingredient(cls, *args, **kwargs):
-        """Add ingredient"""
+        """Add ingredient.
+        Adds an ingredient to a recipe.
+
+        Parameters required: 'recipe' in kwargs
+        """
+
         recipe = kwargs.get('recipe')
         _, ingr_json = cls.print_ingredients(print_ingr=False, *args, **kwargs)
         new_ingr = cls.set_ingredient_details()
@@ -262,24 +295,32 @@ class Recipe(Model):
 
     @classmethod
     def delete_ingredient(cls, *args, **kwargs):
-        """Delete ingredient"""
+        """Delete ingredient.
+        Deletes one ingredient from a recipe.
+        Asks for confirmation before executing.
+
+        Parameter required: 'recipe' in kwargs
+        """
+
         recipe = kwargs.get('recipe')
         _, ingr_json = cls.print_ingredients(print_ingr=False, *args, **kwargs)
         ingr_to_del = input(
             'What is the index of the ingredient to delete?:  ')
         try:
             idx_to_del = int(ingr_to_del) - 1
-        except ValueError:
-            print('\nNeed to enter a number!')
-        else:
             ingr_to_del = ingr_json.pop(idx_to_del).get('ingredient_name')
+        except (ValueError, IndexError):
+            print('\nEnter a valid number!')
+        else:
             if input(f'Delete {ingr_to_del}? [y/N]:  '):
                 Recipe.update(ingredient_list=json.dumps(ingr_json)).where(
                     Recipe.name == recipe.name).execute()
 
     @classmethod
     def modify_ingredient(cls, *args, **kwargs):
-        """Modify ingredient"""
+        """Modify ingredient.
+        Select an ingredient, then start a menu to choose how to modify it.
+        """
         recipe = kwargs.get('recipe')
         _, ingr_json = _, ingr_json = cls.print_ingredients(
             print_ingr=False, *args, **kwargs)
@@ -293,7 +334,7 @@ class Recipe(Model):
 
     @classmethod
     def mod_ingr_name(cls, recipe, ingr_json, idx):
-        """Change name."""
+        """Change ingredient name."""
         new_name = input(
             f'Enter new name for {ingr_json[idx].get("ingredient_name")}:  ')
         ingr_json[idx].update({'ingredient_name': new_name})
@@ -301,7 +342,7 @@ class Recipe(Model):
 
     @classmethod
     def mod_ingr_amount(cls, recipe, ingr_json, idx):
-        """Change amount and unit."""
+        """Change ingredient amount and unit."""
         new_amount = input(
             f'Enter new amount for {ingr_json[idx].get("ingredient_name")}:  ')
         new_unit = input(
@@ -312,7 +353,7 @@ class Recipe(Model):
 
     @classmethod
     def mod_ingr_prep(cls, recipe, ingr_json, idx):
-        """Change prep."""
+        """Change ingredient prep."""
         new_prep = input(
             f'Enter new prep for {ingr_json[idx].get("ingredient_name")}:  ')
         ingr_json[idx].update({'prep': new_prep})
@@ -320,7 +361,7 @@ class Recipe(Model):
 
     @classmethod
     def mod_ingr_opt(cls, recipe, ingr_json, idx):
-        """Change optional."""
+        """Change if ingredient is optional."""
         new_opt = False
         if input(f'Is {ingr_json[idx].get("ingredient_name")} optional? [y/N]:  ') == 'y':
             new_opt = True
@@ -329,25 +370,29 @@ class Recipe(Model):
 
     @classmethod
     def update_prep_time(cls, *args, **kwargs):
-        """Update prep time"""
+        """Update recipe prep time."""
         recipe = kwargs.get('recipe')
         cls.update_field(recipe, field='prep time')
 
     @classmethod
     def update_cook_time(cls, *args, **kwargs):
-        """Update cook time"""
+        """Update recipe cook time."""
         recipe = kwargs.get('recipe')
         cls.update_field(recipe, field='cook time')
 
     @classmethod
     def update_instructions(cls, *args, **kwargs):
-        """Update instructions"""
+        """Update recipe instructions."""
         recipe = kwargs.get('recipe')
         cls.update_field(recipe, field='instructions')
 
     @classmethod
     def show_whole_recipe(cls, *args, **kwargs):
-        """Show whole recipe"""
+        """Show whole recipe.
+        Prints the recipe name, prep time, and cook time,
+        followed by a formatted table of all the ingredients,
+        followed by the instructions for the recipe.
+        """
         recipe = kwargs.get('recipe')
         if recipe == None:
             recipe = cls.select_recipe()
@@ -360,7 +405,11 @@ class Recipe(Model):
 
     @classmethod
     def add_recipe(cls):
-        """Add new recipe"""
+        """Add new recipe.
+        Gives the option to add ingredients.
+        Prep time, cook time, and recipe instructions must be
+        added from modify recipe menu.
+        """
         ingredient_list = []
         name = input('Enter the recipe name: ').strip()
 
@@ -377,7 +426,7 @@ class Recipe(Model):
 
     @classmethod
     def delete_recipe(cls):
-        """Delete recipe"""
+        """Delete recipe."""
         recipe = cls.select_recipe()
         if recipe is not None:
             if input(f'Delete {recipe.name}? [y/N]:  ').lower() == 'y':
@@ -393,5 +442,5 @@ class Recipe(Model):
 
     @classmethod
     def search_recipes(cls):
-        """Search for recipes by ingredient"""
+        """Search recipes by ingredient."""
         cls.view_recipes(input('Search ingredients:  '))
