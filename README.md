@@ -9,7 +9,7 @@ Manage a database for recipes with text-based user input.
 
 Shows menus to get user input like this:
 
-'''
+```
   1) Show recipe names.
   2) Search recipes by ingredient.
   3) Show ingredients.
@@ -20,10 +20,10 @@ Shows menus to get user input like this:
   q) Quit this menu.
 
 Action: 
-'''
+```
 
 Displays completed recipes like this:
-'''
+```
 Recipe: Garlic Bread
 Prep Time: 5 mins
 Cook Time: 3 mins
